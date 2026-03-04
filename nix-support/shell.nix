@@ -1,5 +1,8 @@
 {pkgs ? import <nixpkgs> {}, ...}:
 
-pkgs.mkShell {
-    packages = ((import ./dependencies.nix { inherit pkgs; }) pkgs.python311Packages) ++ [pkgs.mailhog pkgs.black];
+let
+    deps = import ./dependencies.nix { inherit pkgs; };
+    pythonEnv = pkgs.python311.withPackages deps;
+in pkgs.mkShell {
+    packages = [ pythonEnv pkgs.mailhog pkgs.black ];
 }

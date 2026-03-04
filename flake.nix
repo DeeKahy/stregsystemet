@@ -7,19 +7,25 @@
     };
 
     outputs = { self, nixpkgs }: let 
-        system = "x86_64-linux";
-        pkgs = import nixpkgs { inherit system; };
+        linuxSystem = "x86_64-linux";
+        linuxPkgs = import nixpkgs { system = linuxSystem; };
+        supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+        forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     in {
-        # Define the shell, here we're just setting the packages required for the devshell
-        devShells.${system}.default = import ./nix-support/shell.nix { inherit pkgs; };
+        # Define the shell for all supported systems
+        devShells = forAllSystems (system: let
+            pkgs = import nixpkgs { inherit system; };
+        in {
+            default = import ./nix-support/shell.nix { inherit pkgs; };
+        });
 
-        # Default package for the stregsystem
-        packages.${system} = {
-            default = import ./nix-support { inherit pkgs; };
+        # Default package for the stregsystem (Linux only)
+        packages.${linuxSystem} = {
+            default = import ./nix-support { pkgs = linuxPkgs; };
 
             # Test VM
             vm = (nixpkgs.lib.nixosSystem {
-                inherit system;
+                system = linuxSystem;
                 modules = [
                     self.nixosModules.default
                     {
